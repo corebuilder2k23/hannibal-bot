@@ -1,0 +1,39 @@
+import os
+import requests
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+
+
+def get_prices():
+    # CoreDAO price via CoinGecko
+    core_url = "https://api.coingecko.com/api/v3/simple/price?ids=coredao-org&vs_currencies=usd"
+    core_price = requests.get(core_url).json()["coredao-org"]["usd"]
+
+    # Pi Network — no official price (use placeholder or IOU markets)
+    pi_price = 35.0  # ⚠️ Adjust if real market price available
+
+    # USD → TND conversion (approx)
+    usd_to_tnd = 3.1
+
+    return core_price * usd_to_tnd, pi_price * usd_to_tnd
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    core_tnd, pi_tnd = get_prices()
+
+    message = (
+        "🤖 Hannibal — Comparateur Crypto 🇹🇳\n\n"
+        f"🪙 CORE : {core_tnd:.2f} TND\n"
+        f"🟣 PI : {pi_tnd:.2f} TND\n\n"
+        + ("🏆 CORE est plus cher" if core_tnd > pi_tnd else "🏆 PI est plus cher")
+    )
+
+    await update.message.reply_text(message)
+
+
+if __name__ == "__main__":
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.run_polling()
